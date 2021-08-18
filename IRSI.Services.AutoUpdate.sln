@@ -5,7 +5,17 @@ VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{765BC0FB-7979-414B-962A-132B591E76F8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSI.Services.AudoUpdate", "src\IRSI.Services.AudoUpdate\IRSI.Services.AudoUpdate.csproj", "{8AE02251-03C1-4C22-B074-C7B21AC4DBC8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSI.Services.AutoUpdate", "src\IRSI.Services.AutoUpdate\IRSI.Services.AutoUpdate.csproj", "{8AE02251-03C1-4C22-B074-C7B21AC4DBC8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFiles", "SolutionFiles", "{B2FE1BDE-940A-43E8-A38E-F09D452C9163}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{E656A35A-9676-47AE-AD86-7741EB59A343}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "IRSI.Services.AutoUpdate.Tests", "tests\IRSI.Services.AutoUpdate.Tests\IRSI.Services.AutoUpdate.Tests.csproj", "{AD4E2486-28EF-456A-B337-23D9AB18EE29}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -32,8 +42,21 @@ Global
 		{8AE02251-03C1-4C22-B074-C7B21AC4DBC8}.Release|x64.Build.0 = Release|Any CPU
 		{8AE02251-03C1-4C22-B074-C7B21AC4DBC8}.Release|x86.ActiveCfg = Release|Any CPU
 		{8AE02251-03C1-4C22-B074-C7B21AC4DBC8}.Release|x86.Build.0 = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|x64.Build.0 = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Debug|x86.Build.0 = Debug|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|x64.ActiveCfg = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|x64.Build.0 = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|x86.ActiveCfg = Release|Any CPU
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8AE02251-03C1-4C22-B074-C7B21AC4DBC8} = {765BC0FB-7979-414B-962A-132B591E76F8}
+		{AD4E2486-28EF-456A-B337-23D9AB18EE29} = {E656A35A-9676-47AE-AD86-7741EB59A343}
 	EndGlobalSection
 EndGlobal

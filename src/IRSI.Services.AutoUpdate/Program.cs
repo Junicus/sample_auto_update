@@ -1,19 +1,23 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
-using IRSI.Services.AudoUpdate.Options;
+using System.IO.Abstractions;
+using Coravel;
+using IRSI.Services.AutoUpdate.Common.Interfaces;
+using IRSI.Services.AutoUpdate.HttpClients;
+using IRSI.Services.AutoUpdate.Jobs;
+using IRSI.Services.AutoUpdate.Options;
+using IRSI.Services.AutoUpdate.Services;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Serilog;
 using Serilog.Events;
 using Topshelf;
 using Host = Microsoft.Extensions.Hosting.Host;
 
-namespace IRSI.Services.AudoUpdate
+namespace IRSI.Services.AutoUpdate
 {
     public class Program
     {
@@ -25,7 +29,7 @@ namespace IRSI.Services.AudoUpdate
             {
                 x.Service<AutoUpdateService>(s =>
                 {
-                    s.ConstructUsing(() => new AutoUpdateService(CreateHostBuilder(args).Build()));
+                    s.ConstructUsing(() => new(CreateHostBuilder(args).Build()));
                     s.WhenStarted(service => service.Start());
                     s.WhenStopped(service => service.Stop());
                 });
@@ -71,7 +75,7 @@ namespace IRSI.Services.AudoUpdate
                     configuration.MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
                         .Enrich.WithProperty("Application", ServiceName)
                         .Enrich.WithProperty("StoreId",
-                            context.Configuration.GetSection(nameof(ServiceSettings)).Get<ServiceSettings>().StoreId)
+                            context.Configuration.GetSection(nameof(StoreSettings)).Get<StoreSettings>().StoreId)
                         .WriteTo.Console()
                         .WriteTo.File(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs", "autoupdate.log"),
                             rollingInterval: RollingInterval.Day,
@@ -80,8 +84,34 @@ namespace IRSI.Services.AudoUpdate
                 })
                 .ConfigureServices((hostContext, services) =>
                 {
+                    services.Configure<StoreSettings>(settings =>
+                        hostContext.Configuration.GetSection(nameof(StoreSettings)).Bind(settings));
+
                     services.Configure<ServiceSettings>(settings =>
                         hostContext.Configuration.GetSection(nameof(ServiceSettings)).Bind(settings));
+
+                    services.Configure<GitHubSettings>(settings =>
+                        hostContext.Configuration.GetSection(nameof(GitHubSettings)).Bind(settings));
+
+                    services.AddScheduler();
+                    services.AddQueue();
+
+                    services.AddTransient<IEnvironmentProxy, EnvironmentProxy>();
+                    services.AddTransient<IProcessProxy, ProcessProxy>();
+                    services.AddTransient<IFileSystem, FileSystem>();
+
+                    services.AddHttpClient<IGitHubHttpClient, GitHubHttpClient>((provider, client) =>
+                    {
+                        var githubSettings = provider.GetRequiredService<IOptions<GitHubSettings>>();
+                        client.BaseAddress = new("https://api.github.com");
+                        client.DefaultRequestHeaders.Authorization =
+                            new("token", githubSettings.Value.GitHubToken);
+                        client.DefaultRequestHeaders.UserAgent.TryParseAdd("IRSI.Services.AutoUpdate");
+                    });
+
+                    services.AddTransient<CheckUpdatesJob>();
+                    services.AddTransient<InstallServiceJob>();
+                    services.AddTransient<UpdateServiceJob>();
                 });
     }
 }
