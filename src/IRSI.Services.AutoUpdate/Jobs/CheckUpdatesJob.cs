@@ -57,7 +57,7 @@ namespace IRSI.Services.AutoUpdate.Jobs
                         await _fileSystem.File.ReadAllTextAsync(_fileSystem.Path.Combine(servicePath, "version.txt"));
                     if (version != response.Release.Name)
                         _queue.QueueInvocableWithPayload<UpdateServiceJob, UpdateServicePayload>(new(serviceDefinition,
-                            response.Release.Assets.First().Id));
+                            response.Release.Assets.First().Id, response.Release.Name));
                 }
             }
         }

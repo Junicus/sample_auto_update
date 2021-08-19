@@ -117,6 +117,7 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
                     queue.QueueInvocableWithPayload<InstallServiceJob, InstallServicePayload>(
                         A<InstallServicePayload>.That.Matches((x) =>
                             x.AssetId == 123
+                            && x.VersionName == "v2"
                             && x.ServiceDefinition.Owner == "Owner"
                             && x.ServiceDefinition.RepositoryName == "RepositoryName"
                             && x.ServiceDefinition.InstallationPath == "InstallPath")))
@@ -144,6 +145,7 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
                     queue.QueueInvocableWithPayload<UpdateServiceJob, UpdateServicePayload>(
                         A<UpdateServicePayload>.That.Matches((x) =>
                             x.AssetId == 123
+                            && x.VersionName == "v2"
                             && x.ServiceDefinition.Owner == "Owner"
                             && x.ServiceDefinition.RepositoryName == "RepositoryName"
                             && x.ServiceDefinition.InstallationPath == "SomeService")))
