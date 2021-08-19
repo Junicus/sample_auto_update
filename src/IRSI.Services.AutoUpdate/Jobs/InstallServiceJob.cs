@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Coravel.Invocable;
 using IRSI.Services.AutoUpdate.Common.Interfaces;
 using IRSI.Services.AutoUpdate.Options;
+using IRSI.Services.AutoUpdate.Utilities;
 
 namespace IRSI.Services.AutoUpdate.Jobs
 {
@@ -16,13 +17,14 @@ namespace IRSI.Services.AutoUpdate.Jobs
         private readonly IEnvironmentProxy _environment;
         private readonly IProcessProxy _processProxy;
 
-        private string SERVICES_PATH = "SERVICES_PATH";
+        private const string ServicesPath = "SERVICES_PATH";
+
         private string TempBasePath => _fileSystem.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp");
         private string AssetBasePath => _fileSystem.Path.Combine(TempBasePath, $"{Payload.AssetId}");
         private string AssetFilePath => _fileSystem.Path.Combine(AssetBasePath, $"{Payload.AssetId}.zip");
         private string ExtractPath => _fileSystem.Path.Combine(AssetBasePath, "extract");
 
-        private string InstallPath => _fileSystem.Path.Combine(_environment.GetEnvironmentVariable(SERVICES_PATH),
+        private string InstallPath => _fileSystem.Path.Combine(_environment.GetEnvironmentVariable(ServicesPath),
             Payload.ServiceDefinition.InstallationPath);
 
         private string ExecutablePath =>
@@ -43,10 +45,11 @@ namespace IRSI.Services.AutoUpdate.Jobs
                 Payload.ServiceDefinition.RepositoryName, Payload.AssetId);
             await using var memoryStream = new MemoryStream(result.File);
 
-            CreateRequiredFolders();
-            await SaveTempFile(memoryStream);
-            await ExtractTempFileAsync();
-            CopyTempFilesToInstallationFolder();
+            IO.CreateFolders(_fileSystem, new[] { TempBasePath, AssetBasePath, ExtractPath, InstallPath });
+            await IO.SaveBytesToFile(_fileSystem, AssetFilePath, result.File);
+            await IO.ExtractArchiveToPath(_fileSystem, AssetFilePath, ExtractPath);
+            IO.CopyFilesRecursively(_fileSystem.DirectoryInfo.FromDirectoryName(ExtractPath),
+                _fileSystem.DirectoryInfo.FromDirectoryName(InstallPath));
 
             await _fileSystem.File.WriteAllTextAsync(_fileSystem.Path.Combine(InstallPath, "version.txt"),
                 Payload.VersionName);
@@ -63,53 +66,8 @@ namespace IRSI.Services.AutoUpdate.Jobs
             _fileSystem.Directory.Delete(AssetBasePath, true);
         }
 
-        private void CreateRequiredFolders()
-        {
-            if (!_fileSystem.Directory.Exists(TempBasePath)) _fileSystem.Directory.CreateDirectory(TempBasePath);
-            if (!_fileSystem.Directory.Exists(AssetBasePath)) _fileSystem.Directory.CreateDirectory(AssetBasePath);
-            if (!_fileSystem.Directory.Exists(ExtractPath)) _fileSystem.Directory.CreateDirectory(ExtractPath);
-            if (!_fileSystem.Directory.Exists(InstallPath)) _fileSystem.Directory.CreateDirectory(InstallPath);
-        }
-
-        private async Task ExtractTempFileAsync()
-        {
-            await using var archiveFile = _fileSystem.File.OpenRead(AssetFilePath);
-            var archive = new ZipArchive(archiveFile, ZipArchiveMode.Read, true);
-            foreach (var entry in archive.Entries)
-            {
-                var destination = Path.GetFullPath(Path.Combine(ExtractPath, entry.FullName));
-                var archiveStream = entry.Open();
-                var destinationFile = _fileSystem.File.Create(destination);
-                await archiveStream.CopyToAsync(destinationFile);
-
-                destinationFile.Close();
-                archiveStream.Close();
-            }
-        }
-
-        private async Task SaveTempFile(Stream memoryStream)
-        {
-            await using var fs = _fileSystem.FileStream.Create(AssetFilePath, FileMode.Create);
-            await memoryStream.CopyToAsync(fs);
-        }
-
-        private void CopyTempFilesToInstallationFolder()
-        {
-            var files = _fileSystem.Directory.GetFiles(ExtractPath);
-            foreach (var fileName in files)
-            {
-                var destination =
-                    _fileSystem.Path.GetFullPath(_fileSystem.Path.Combine(InstallPath,
-                        _fileSystem.Path.GetFileName(fileName)));
-                _fileSystem.File.Copy(fileName, destination);
-            }
-        }
-
         public InstallServicePayload Payload { get; set; }
     }
 
     public record InstallServicePayload(ServiceDefinition ServiceDefinition, int AssetId, string VersionName);
 }
-
-//var t = await _gitHubHttpClient.GetReleaseAsset(serviceDefinition.Owner, serviceDefinition.RepositoryName,
-//    response.Release.Assets.First().Id);
