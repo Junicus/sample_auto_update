@@ -17,11 +17,11 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
 {
     public class CheckUpdatesJobTests
     {
-        private readonly IOptions<ServiceSettings> _optionsMock;
-        private readonly IGitHubHttpClient _gitHubHttpClient;
-        private readonly IQueue _queue;
         private readonly IEnvironmentProxy _environmentProxy;
         private readonly IFileSystem _fileSystem;
+        private readonly IGitHubHttpClient _gitHubHttpClient;
+        private readonly IOptions<ServiceSettings> _optionsMock;
+        private readonly IQueue _queue;
 
         public CheckUpdatesJobTests()
         {
@@ -115,7 +115,7 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
 
             A.CallTo(() =>
                     queue.QueueInvocableWithPayload<InstallServiceJob, InstallServicePayload>(
-                        A<InstallServicePayload>.That.Matches((x) =>
+                        A<InstallServicePayload>.That.Matches(x =>
                             x.AssetId == 123
                             && x.VersionName == "v2"
                             && x.ServiceDefinition.Owner == "Owner"
@@ -143,7 +143,7 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
 
             A.CallTo(() =>
                     queue.QueueInvocableWithPayload<UpdateServiceJob, UpdateServicePayload>(
-                        A<UpdateServicePayload>.That.Matches((x) =>
+                        A<UpdateServicePayload>.That.Matches(x =>
                             x.AssetId == 123
                             && x.VersionName == "v2"
                             && x.ServiceDefinition.Owner == "Owner"

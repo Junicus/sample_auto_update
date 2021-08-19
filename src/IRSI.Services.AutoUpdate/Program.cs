@@ -43,27 +43,22 @@ namespace IRSI.Services.AutoUpdate
                 x.DependsOnEventLog();
                 x.BeforeInstall(() =>
                 {
-                    if (!EventLog.SourceExists(ServiceName))
-                    {
-                        EventLog.CreateEventSource(ServiceName, "Application");
-                    }
+                    if (!EventLog.SourceExists(ServiceName)) EventLog.CreateEventSource(ServiceName, "Application");
                 });
             });
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-            Host.CreateDefaultBuilder(args)
+        public static IHostBuilder CreateHostBuilder(string[] args)
+        {
+            return Host.CreateDefaultBuilder(args)
                 .ConfigureAppConfiguration((context, config) =>
                 {
                     var env = context.HostingEnvironment;
                     config.SetBasePath(AppDomain.CurrentDomain.BaseDirectory);
                     config.AddEnvironmentVariables();
-                    config.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true);
-                    config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", optional: true);
-                    if (env.IsDevelopment())
-                    {
-                        config.AddUserSecrets<Program>();
-                    }
+                    config.AddJsonFile("appsettings.json", false, true);
+                    config.AddJsonFile($"appsettings.{env.EnvironmentName}.json", true);
+                    if (env.IsDevelopment()) config.AddUserSecrets<Program>();
                 })
                 .UseSerilog((context, configuration) =>
                 {
@@ -116,5 +111,6 @@ namespace IRSI.Services.AutoUpdate
                     services.AddTransient<InstallServiceJob>();
                     services.AddTransient<UpdateServiceJob>();
                 });
+        }
     }
 }

@@ -17,10 +17,7 @@ namespace IRSI.Services.AutoUpdate
 
         public void Start()
         {
-            _host.Services.UseScheduler(scheduler =>
-            {
-                
-            });
+            _host.Services.UseScheduler(scheduler => { });
             _host.Start();
 
             var queue = _host.Services.GetRequiredService<IQueue>();

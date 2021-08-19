@@ -20,16 +20,16 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
 {
     public class InstallServiceJobTests
     {
-        private readonly ServiceDefinition _serviceDefinition;
-        private readonly StoreSettings _storeSettings;
-        private readonly ServiceBusSettings _serviceBusSettings;
-        private readonly IGitHubHttpClient _gitHubHttpClient;
         private readonly IEnvironmentProxy _environmentProxy;
         private readonly IFileSystem _fileSystem;
+        private readonly IGitHubHttpClient _gitHubHttpClient;
         private readonly IProcessProxy _processProxy;
-        private readonly IOptions<StoreSettings> _storeOptions;
         private readonly IOptions<ServiceBusSettings> _serviceBusOptions;
+        private readonly ServiceBusSettings _serviceBusSettings;
+        private readonly ServiceDefinition _serviceDefinition;
         private readonly string _servicesBasePath;
+        private readonly IOptions<StoreSettings> _storeOptions;
+        private readonly StoreSettings _storeSettings;
 
         public InstallServiceJobTests()
         {
@@ -150,7 +150,7 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             var data = JsonSerializer.Deserialize<StoreSettingsFile>(json);
             data!.StoreSettings.StoreId.Should().Be("abc");
         }
-        
+
         [Fact]
         public async Task When_Invoked_ServiceBusSettings_Created()
         {

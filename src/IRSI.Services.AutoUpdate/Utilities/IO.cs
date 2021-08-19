@@ -1,5 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
 using System.IO.Compression;
@@ -20,9 +19,8 @@ namespace IRSI.Services.AutoUpdate.Utilities
         public static void CreateFolders(IFileSystem fileSystem, IEnumerable<string> folderNames)
         {
             foreach (var folderName in folderNames)
-            {
-                if (!fileSystem.Directory.Exists(folderName)) fileSystem.Directory.CreateDirectory(folderName);
-            }
+                if (!fileSystem.Directory.Exists(folderName))
+                    fileSystem.Directory.CreateDirectory(folderName);
         }
 
         public static async Task SaveBytesToFile(IFileSystem fileSystem, string path, byte[] bytes)

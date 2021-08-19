@@ -12,13 +12,13 @@ namespace IRSI.Services.AutoUpdate.Jobs
 {
     public class CheckUpdatesJob : IInvocable
     {
-        private readonly ServiceSettings _serviceSettings;
-        private readonly IGitHubHttpClient _gitHubHttpClient;
-        private readonly IFileSystem _fileSystem;
         private readonly IEnvironmentProxy _environment;
+        private readonly IFileSystem _fileSystem;
+        private readonly IGitHubHttpClient _gitHubHttpClient;
         private readonly IQueue _queue;
+        private readonly ServiceSettings _serviceSettings;
 
-        private string SERVICES_PATH = "SERVICES_PATH";
+        private readonly string SERVICES_PATH = "SERVICES_PATH";
 
         public CheckUpdatesJob(IOptions<ServiceSettings> serviceSettingsOptions, IGitHubHttpClient gitHubHttpClient,
             IQueue queue, IFileSystem fileSystem, IEnvironmentProxy environment)
@@ -46,10 +46,8 @@ namespace IRSI.Services.AutoUpdate.Jobs
                 {
                     _fileSystem.Directory.CreateDirectory(servicePath);
                     if (response.Status == ResultStatus.Success)
-                    {
                         _queue.QueueInvocableWithPayload<InstallServiceJob, InstallServicePayload>(
                             new(serviceDefinition, response.Release.Assets.First().Id, response.Release.Name));
-                    }
                 }
                 else
                 {

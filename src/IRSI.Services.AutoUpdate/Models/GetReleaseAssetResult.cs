@@ -5,7 +5,7 @@ namespace IRSI.Services.AutoUpdate.Models
     public class GetReleaseAssetResult : Result
     {
         public byte[] File { get; set; }
-        
+
         public static GetReleaseAssetResult FailedResult(string errorMessage)
         {
             return new()

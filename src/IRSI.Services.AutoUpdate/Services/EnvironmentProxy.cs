@@ -5,6 +5,9 @@ namespace IRSI.Services.AutoUpdate.Services
 {
     public class EnvironmentProxy : IEnvironmentProxy
     {
-        public string? GetEnvironmentVariable(string variableName) => Environment.GetEnvironmentVariable(variableName);
+        public string? GetEnvironmentVariable(string variableName)
+        {
+            return Environment.GetEnvironmentVariable(variableName);
+        }
     }
 }

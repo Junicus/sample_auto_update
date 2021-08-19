@@ -14,26 +14,13 @@ namespace IRSI.Services.AutoUpdate.Jobs
 {
     public class UpdateServiceJob : IInvocable, IInvocableWithPayload<UpdateServicePayload>
     {
-        private readonly IGitHubHttpClient _gitHubHttpClient;
-        private readonly IFileSystem _fileSystem;
-        private readonly IEnvironmentProxy _environment;
-        private readonly IProcessProxy _processProxy;
-        private readonly StoreSettings _storeSettings;
-        private readonly ServiceBusSettings _serviceBusSettings;
-
-
         private const string ServicesPath = "SERVICES_PATH";
-
-        private string TempBasePath => _fileSystem.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp");
-        private string AssetBasePath => _fileSystem.Path.Combine(TempBasePath, $"{Payload.AssetId}");
-        private string AssetFilePath => _fileSystem.Path.Combine(AssetBasePath, $"{Payload.AssetId}.zip");
-        private string ExtractPath => _fileSystem.Path.Combine(AssetBasePath, "extract");
-
-        private string InstallPath => _fileSystem.Path.Combine(_environment.GetEnvironmentVariable(ServicesPath),
-            Payload.ServiceDefinition.InstallationPath);
-
-        private string ExecutablePath =>
-            _fileSystem.Path.Combine(InstallPath, Payload.ServiceDefinition.ServiceExecutable);
+        private readonly IEnvironmentProxy _environment;
+        private readonly IFileSystem _fileSystem;
+        private readonly IGitHubHttpClient _gitHubHttpClient;
+        private readonly IProcessProxy _processProxy;
+        private readonly ServiceBusSettings _serviceBusSettings;
+        private readonly StoreSettings _storeSettings;
 
         public UpdateServiceJob(IGitHubHttpClient gitHubHttpClient, IFileSystem fileSystem,
             IEnvironmentProxy environment, IProcessProxy processProxy, IOptions<StoreSettings> storeOptions,
@@ -46,6 +33,17 @@ namespace IRSI.Services.AutoUpdate.Jobs
             _storeSettings = storeOptions.Value;
             _serviceBusSettings = serviceBusOptions.Value;
         }
+
+        private string TempBasePath => _fileSystem.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "temp");
+        private string AssetBasePath => _fileSystem.Path.Combine(TempBasePath, $"{Payload.AssetId}");
+        private string AssetFilePath => _fileSystem.Path.Combine(AssetBasePath, $"{Payload.AssetId}.zip");
+        private string ExtractPath => _fileSystem.Path.Combine(AssetBasePath, "extract");
+
+        private string InstallPath => _fileSystem.Path.Combine(_environment.GetEnvironmentVariable(ServicesPath),
+            Payload.ServiceDefinition.InstallationPath);
+
+        private string ExecutablePath =>
+            _fileSystem.Path.Combine(InstallPath, Payload.ServiceDefinition.ServiceExecutable);
 
         public async Task Invoke()
         {
@@ -87,12 +85,12 @@ namespace IRSI.Services.AutoUpdate.Jobs
             CleanTemporaryFiles();
         }
 
+        public UpdateServicePayload Payload { get; set; }
+
         private void CleanTemporaryFiles()
         {
             _fileSystem.Directory.Delete(AssetBasePath, true);
         }
-
-        public UpdateServicePayload Payload { get; set; }
     }
 
     public record UpdateServicePayload(ServiceDefinition ServiceDefinition, int AssetId, string VersionName);

@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 using IRSI.Services.AutoUpdate.Models;
-using IRSI.Services.AutoUpdate.Options;
 
 namespace IRSI.Services.AutoUpdate.Common.Interfaces
 {
