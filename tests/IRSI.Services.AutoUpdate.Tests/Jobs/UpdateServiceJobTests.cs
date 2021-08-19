@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using FakeItEasy;
 using FluentAssertions;
@@ -12,6 +13,7 @@ using IRSI.Services.AutoUpdate.Common.Interfaces;
 using IRSI.Services.AutoUpdate.Jobs;
 using IRSI.Services.AutoUpdate.Models;
 using IRSI.Services.AutoUpdate.Options;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace IRSI.Services.AutoUpdate.Tests.Jobs
@@ -19,10 +21,14 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
     public class UpdateServiceJobTests
     {
         private readonly ServiceDefinition _serviceDefinition;
+        private readonly StoreSettings _storeSettings;
+        private readonly ServiceBusSettings _serviceBusSettings;
         private readonly IGitHubHttpClient _gitHubHttpClient;
         private readonly IEnvironmentProxy _environmentProxy;
         private readonly IFileSystem _fileSystem;
         private readonly IProcessProxy _processProxy;
+        private readonly IOptions<StoreSettings> _storeOptions;
+        private readonly IOptions<ServiceBusSettings> _serviceBusOptions;
         private readonly string _servicesBasePath;
 
         public UpdateServiceJobTests()
@@ -30,8 +36,17 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             _serviceDefinition = new()
             {
                 Owner = "Owner", RepositoryName = "RepoName", InstallationPath = "RepoName",
-                ServiceExecutable = "RepoName.exe"
+                ServiceExecutable = "RepoName.exe", SetupStoreId = true, SetupServiceBus = true
             };
+
+            _storeSettings = new() { StoreId = "abc" };
+            _serviceBusSettings = new() { ConnectionString = "abc123" };
+
+            _storeOptions = A.Fake<IOptions<StoreSettings>>();
+            A.CallTo(() => _storeOptions.Value).Returns(_storeSettings);
+
+            _serviceBusOptions = A.Fake<IOptions<ServiceBusSettings>>();
+            A.CallTo(() => _serviceBusOptions.Value).Returns(_serviceBusSettings);
 
             _gitHubHttpClient = A.Fake<IGitHubHttpClient>();
             var fileData = File.ReadAllBytes("temp.zip");
@@ -48,7 +63,9 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             _fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>
             {
                 { @"C:\Temp", new MockDirectoryData() },
-                { @"C:\TService\RepoName", new MockDirectoryData() }
+                { @"C:\TService\RepoName", new MockDirectoryData() },
+                { @"C:\TService\RepoName\storeid.json", new MockFileData("{ \"StoreId\": \"abc\" }") },
+                { @"C:\TService\RepoName\servicebus.json", new MockFileData("{ \"ConnectionString\": \"abc\" }") }
             });
         }
 
@@ -61,7 +78,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             A.CallTo(() => gitHubHttpClient.GetReleaseAsset(A<string>._, A<string>._, A<int>._))
                 .ReturnsLazily(() => GetReleaseAssetResult.SuccessResult(fileData));
 
-            var sut = new UpdateServiceJob(gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy)
+            var sut = new UpdateServiceJob(gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v1")
             };
@@ -75,7 +93,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
         public async Task When_Invoked_InstallationFolder_Created()
         {
             const int expectedAssetId = 123;
-            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy)
+            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v1")
             };
@@ -89,7 +108,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
         public async Task When_Invoked_TemporaryAssetFolder_Removed()
         {
             const int expectedAssetId = 123;
-            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy)
+            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v1")
             };
@@ -105,7 +125,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
         public async Task When_Invoked_VersionText_Created()
         {
             const int expectedAssetId = 123;
-            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy)
+            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v2.1")
             };
@@ -121,7 +142,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             const int expectedAssetId = 123;
             var processProxy = A.Fake<IProcessProxy>();
 
-            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, processProxy)
+            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v1")
             };
@@ -137,7 +159,8 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
             const int expectedAssetId = 123;
             var processProxy = A.Fake<IProcessProxy>();
 
-            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, processProxy)
+            var sut = new UpdateServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, processProxy,
+                _storeOptions, _serviceBusOptions)
             {
                 Payload = new(_serviceDefinition, expectedAssetId, "v1")
             };
@@ -145,6 +168,52 @@ namespace IRSI.Services.AutoUpdate.Tests.Jobs
 
             A.CallTo(() => processProxy.Start(@"C:\TService\RepoName\RepoName.exe",
                 A<string[]>.That.Matches(x => x.ToList().Contains("start")))).MustHaveHappened();
+        }
+
+        [Fact]
+        public async Task When_Invoked_StoreIdSettings_Updated()
+        {
+            const int expectedAssetId = 123;
+            var sut = new InstallServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
+            {
+                Payload = new(_serviceDefinition, expectedAssetId, "v2.1")
+            };
+
+            var before = await _fileSystem.File.ReadAllTextAsync(@"C:\TService\RepoName\storeid.json");
+
+            await sut.Invoke();
+
+            _fileSystem.File.Exists(@"C:\TService\RepoName\storeid.json").Should().BeTrue();
+
+            var after = await _fileSystem.File.ReadAllTextAsync(@"C:\TService\RepoName\storeid.json");
+            var data = JsonSerializer.Deserialize<StoreSettingsFile>(after);
+            data!.StoreSettings.StoreId.Should().Be("abc");
+
+            before.Should().NotBe(after);
+        }
+
+        [Fact]
+        public async Task When_Invoked_ServiceBusSettings_Updated()
+        {
+            const int expectedAssetId = 123;
+            var sut = new InstallServiceJob(_gitHubHttpClient, _fileSystem, _environmentProxy, _processProxy,
+                _storeOptions, _serviceBusOptions)
+            {
+                Payload = new(_serviceDefinition, expectedAssetId, "v2.1")
+            };
+
+            var before = await _fileSystem.File.ReadAllTextAsync(@"C:\TService\RepoName\servicebus.json");
+
+            await sut.Invoke();
+
+            _fileSystem.File.Exists(@"C:\TService\RepoName\servicebus.json").Should().BeTrue();
+
+            var after = await _fileSystem.File.ReadAllTextAsync(@"C:\TService\RepoName\servicebus.json");
+            var data = JsonSerializer.Deserialize<ServiceBusSettingsFile>(after);
+            data!.ServiceBusSettings.ConnectionString.Should().Be("abc123");
+
+            before.Should().NotBe(after);
         }
     }
 }

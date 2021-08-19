@@ -87,6 +87,9 @@ namespace IRSI.Services.AutoUpdate
                     services.Configure<StoreSettings>(settings =>
                         hostContext.Configuration.GetSection(nameof(StoreSettings)).Bind(settings));
 
+                    services.Configure<ServiceBusSettings>(settings =>
+                        hostContext.Configuration.GetSection(nameof(ServiceBusSettings)).Bind(settings));
+
                     services.Configure<ServiceSettings>(settings =>
                         hostContext.Configuration.GetSection(nameof(ServiceSettings)).Bind(settings));
 

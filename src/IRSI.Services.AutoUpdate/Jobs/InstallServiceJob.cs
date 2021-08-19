@@ -2,11 +2,14 @@
 using System.IO;
 using System.IO.Abstractions;
 using System.IO.Compression;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Coravel.Invocable;
 using IRSI.Services.AutoUpdate.Common.Interfaces;
+using IRSI.Services.AutoUpdate.Models;
 using IRSI.Services.AutoUpdate.Options;
 using IRSI.Services.AutoUpdate.Utilities;
+using Microsoft.Extensions.Options;
 
 namespace IRSI.Services.AutoUpdate.Jobs
 {
@@ -16,6 +19,8 @@ namespace IRSI.Services.AutoUpdate.Jobs
         private readonly IFileSystem _fileSystem;
         private readonly IEnvironmentProxy _environment;
         private readonly IProcessProxy _processProxy;
+        private readonly StoreSettings _storeSettings;
+        private readonly ServiceBusSettings _serviceBusSettings;
 
         private const string ServicesPath = "SERVICES_PATH";
 
@@ -31,12 +36,15 @@ namespace IRSI.Services.AutoUpdate.Jobs
             _fileSystem.Path.Combine(InstallPath, Payload.ServiceDefinition.ServiceExecutable);
 
         public InstallServiceJob(IGitHubHttpClient gitHubHttpClient, IFileSystem fileSystem,
-            IEnvironmentProxy environment, IProcessProxy processProxy)
+            IEnvironmentProxy environment, IProcessProxy processProxy, IOptions<StoreSettings> storeOptions,
+            IOptions<ServiceBusSettings> serviceBusOptions)
         {
             _gitHubHttpClient = gitHubHttpClient;
             _fileSystem = fileSystem;
             _environment = environment;
             _processProxy = processProxy;
+            _storeSettings = storeOptions.Value;
+            _serviceBusSettings = serviceBusOptions.Value;
         }
 
         public async Task Invoke()
@@ -53,6 +61,22 @@ namespace IRSI.Services.AutoUpdate.Jobs
 
             await _fileSystem.File.WriteAllTextAsync(_fileSystem.Path.Combine(InstallPath, "version.txt"),
                 Payload.VersionName);
+
+            if (Payload.ServiceDefinition.SetupStoreId)
+            {
+                var storeSettingsFile = new StoreSettingsFile { StoreSettings = _storeSettings };
+                var json = JsonSerializer.Serialize(storeSettingsFile, new() { WriteIndented = true });
+                await _fileSystem.File.WriteAllTextAsync(_fileSystem.Path.Combine(InstallPath, "storeid.json"), json);
+            }
+
+            if (Payload.ServiceDefinition.SetupServiceBus)
+            {
+                var serviceBusSettingsFile = new ServiceBusSettingsFile { ServiceBusSettings = _serviceBusSettings };
+                var json = JsonSerializer.Serialize(serviceBusSettingsFile, new() { WriteIndented = true });
+                await _fileSystem.File.WriteAllTextAsync(_fileSystem.Path.Combine(InstallPath, "servicebus.json"),
+                    json);
+            }
+
             var installProcess = _processProxy.Start(ExecutablePath, new[] { "install" });
             await _processProxy.WaitForExitAsync(installProcess);
             var startProcess = _processProxy.Start(ExecutablePath, new[] { "start" });
